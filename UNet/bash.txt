@@ -1,0 +1,9 @@
+note:
+unet_cam:
+(n,64,128,128) CNN 之后连接CAM
+
+unet_cam_v2:
+(n*2*128*128) CNN 之后连接CAM
+
+unet_cam_v3:
+(n,64,128,128) CNN 之后连接CAM，loss计算对热力图进行区分度loss

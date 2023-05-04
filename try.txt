@@ -1,0 +1,31 @@
+#修改后的检查模型：
+from torch.nn import parameter
+
+
+# --test_frame
+# param中包含：mask_root_dir, image_root_dir, image_property_dir
+target_ds = SegFileDataset(param,crop=False,size=None) #声明数据集
+segmentation_dl = torch.utils.data.DataLoader(target_ds,param.batch_size,shuffle=False)
+outdict = model_metrics(Threshold(unet,thr,resize_to), segmentation_dl, \
+            stats=(IoU,accuracy), n_steps=param.n_steps)
+
+#train_segmentation:
+eval_dict = evaluate(
+    SegmentationInference(model,resize,reszie_to=SEGMENTATION_RES),
+    val_dirs[0], val_dirs[1],(F_max)
+)
+update_out_json(eval_dict,....)
+
+
+
+def evaluate(segmentation_model, param, metrics, size=None):
+    segmentation_dl = (sd)
+
+
+self.mask_root_dir = '/home/zmwang/project/qxy/utils/datasets/CUB/segmentation'
+self.image_root_dir = '/home/zmwang/project/qxy/utils/datasets/CUB/data'
+self.image_property_dir = \
+    '/home/zmwang/project/qxy/utils/datasets/CUB/data_annotation/CUB_ssegmentation/test_list.json'
+
+
+def __init__(self,mode):

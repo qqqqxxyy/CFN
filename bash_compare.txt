@@ -1,0 +1,29 @@
+#this file records the bash command of testing different 
+#compare methods in WSOL
+#Gcn_classifier CUB test sample
+python test_cls.py \
+	--model_weight=\
+	../weight_result/results/trained_weight/000510_80__result.pth \
+	--tencrop=True --class_record=True \
+	--val_property_dir=\
+	'CUB/data_annotation/CUB_WSOL/test_list.json'
+#Gcn_classifier ILSVRC test sample
+pretrained weight
+#I2C CUB test sample
+python test_compare.py --n_steps=100 \
+	--model=I2c_vgg --unet_load_paths=../weight_result/results/trained_weight/000496_result.pth \
+	--image_property_dir=CUB/data_annotation/CUB_WSOL/test_list.json
+#I2C ILSVRC test sample
+python test_compare.py --n_steps=100 \
+	--model=I2c_vgg --unet_load_paths=../weight_result/results/trained_weight/000497_result.pth \
+	--image_root_dir=ILSVRC/validation_data \
+	--image_property_dir=ILSVRC/data_annotation/test_list.json
+#SPA CUB test sample
+python test_compare.py --n_steps=100 \
+	--model=Spa_vgg --unet_load_paths=../weight_result/results/trained_weight/000463_40__result.pth \
+	--image_property_dir=CUB/data_annotation/CUB_WSOL/test_list.json
+#SPA ILSVRC test sample
+python test_compare.py --n_steps=100 \
+	--model=Spa_vgg --unet_load_paths=../weight_result/results/trained_weight/000464_result.pth \
+	--image_root_dir=ILSVRC/validation_data \
+	--image_property_dir=ILSVRC/data_annotation/test_list.json
