@@ -159,8 +159,8 @@ def main():
     info_record.record(__file__,'both')
     info_record.record(param.__dict__,'both')
     torch.random.manual_seed(param.seed)
+    os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(map(str, param.gen_devices))
     torch.cuda.set_device(param.device)
-    
     init_seq = '{0} experment No: {1}  time : {2}'.format(\
             info_record.mode,info_record.id,info_record.time_sequence)
     print(init_seq)
@@ -338,16 +338,17 @@ def train_segmentation(model,CombLoader,params,info_record,gen_devices,tf_elemen
     model.loss_init()
     index = 0
 
-    model.eval()
-    tsfm=transforms.Compose([ transforms.Resize((224,224)),
-        transforms.ToTensor(), Trans(['Normalize','standard']) ])
-    tsfm_bbox=transforms.Compose([ TransBbox(['Resize',(224,224)])])
-    val_ds = ObjLocDataset(params.val_root_dir,params.val_property_dir,tsfm,tsfm_bbox)
-    val_dl = torch.utils.data.DataLoader(val_ds,1,shuffle=False)
-    info = check_train(model,val_dl)#,length=50)
-    info_record.record(info,'log_detail')
-    print('0.5:',info['0.5'],';0.9:',info['0.9'],';mIoU:',info['miou'],';box_v2:',info['box_v2'])
     model.train()
+    # model.eval()
+    # tsfm=transforms.Compose([ transforms.Resize((224,224)),
+    #     transforms.ToTensor(), Trans(['Normalize','standard']) ])
+    # tsfm_bbox=transforms.Compose([ TransBbox(['Resize',(224,224)])])
+    # val_ds = ObjLocDataset(params.val_root_dir,params.val_property_dir,tsfm,tsfm_bbox)
+    # val_dl = torch.utils.data.DataLoader(val_ds,1,shuffle=False)
+    # info = check_train(model,val_dl,length=50)
+    # info_record.record(info,'log_detail')
+    # print('0.5:',info['0.5'],';0.9:',info['0.9'],';mIoU:',info['miou'],';box_v2:',info['box_v2'])
+    # model.train()
 
     while index<params.n_steps:
         #加载权重and预处理
@@ -405,7 +406,7 @@ def train_segmentation(model,CombLoader,params,info_record,gen_devices,tf_elemen
 
                 val_ds = ObjLocDataset(params.val_root_dir,params.val_property_dir,tsfm,tsfm_bbox)
                 val_dl = torch.utils.data.DataLoader(val_ds,1,shuffle=False)
-                info = check_train(model,val_dl)#,length=50)
+                info = check_train(model,val_dl,length=500)
                 info_record.record(info,'log_detail')
                 print('0.5:',info['0.5'],';0.9:',info['0.9'],';mIoU:',info['miou'],';box_v2:',info['box_v2'])
                 model.train()
