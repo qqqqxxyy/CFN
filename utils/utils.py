@@ -13,7 +13,7 @@ from metrics import ACC_record, cor2IoU,cor2IoU2,mask2cor,maskfilter,msk2IoU_pre
 from utils.io_util import load_path_file
 
 PATH_FILE = load_path_file()
-ROOT_PATH = PATH_FILE['main_root']
+ROOT_PATH = PATH_FILE['root_path']
 def to_image(tensor, adaptive=False):
     if len(tensor.shape) == 4:
         tensor = tensor[0]

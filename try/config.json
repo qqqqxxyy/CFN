@@ -1,0 +1,4 @@
+{
+    "model":"UNet_ssol_base2_3",
+    "model_weight":"../weight/result_weight/000258_check_2_10000.pth"
+}

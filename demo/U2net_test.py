@@ -1,12 +1,14 @@
 #-*- coding: UTF-8 -*-
-
 from random import randint
 from re import I, U
 from torchvision import transforms
+import sys
+#添加检索路径
+sys.path.append('..')
 from UNet.unet_model import UNet
 #SegmentationInference, Threshold,resize_min_edge
 import os
-import sys
+
 import argparse
 import json
 import torch
@@ -20,11 +22,10 @@ import matplotlib
 matplotlib.use("Agg")
 import ipdb
 import torch.nn.functional as F
-from utils.io_util import Info_Record,formate_output,Pretrained_Read
+from utils.io_util import Info_Record,formate_output,Pretrained_Read,load_path_file
 from utils.postprocessing import *
 from utils.utils import to_image,IoU_manager,area_counter
 from utils.visual_util import visualizer
-
 from UNet.unet_cam import *
 from UNet.u2net import *
 from UNet.unet_ssol import *
@@ -36,25 +37,14 @@ from metrics import *
 from BigGAN.gan_load import make_big_gan
 from tqdm import tqdm
 from ptflops import get_model_complexity_info
-from utils.prepared_util import load_path_file
 import pandas as pd
-PATH_FILE = load_path_file()
-UNET_PATH = '../weight/pretrained_weight/pre_u2net.pth'
-BIGBIGAN_WEIGHTS = '../weight/pretrained_weight/BigBiGAN_x1.pth'
-MASK_SYNTHEZ_DICT = {
-    'lighting': MaskSynthesizing.LIGHTING,
-    'mean_thr': MaskSynthesizing.MEAN_THR,
-}
+
+
 class TestParams(object):
 
     def __init__(self):
         #固定参数
-        self.batch_size= 1
-        # self.mask_root_dir = 'CUB/segmentation'
-        # self.image_root_dir = 'CUB/data'
-        # self.image_property_dir = \
-        #     'CUB/data_annotation/CUB_WSOL/test_list.json'
-            # '/home/qxy/Desktop/datasets/CUB/data_annotation/CUB_WSOL/test_list.json'        
+        self.batch_size= 1    
         self.model = 'UNet_cam'
         self.dataset = 'CUB'
         self.n_steps=None
@@ -70,60 +60,45 @@ class TestParams(object):
         self.maxes_filter = True
         self.syn_norm=True
         self.save_iou=False
+        self.model_weight=""
+        self.length=50
+        PATH_FILE = load_path_file()
+        self.root_path=PATH_FILE["root_path"]
+        self.dataset_path=PATH_FILE["dataset_path"]
+        self.flexible_config_path=""
+        self.flexible_config_choice=""
         #可以从命令行读入的参数
-        parser = argparse.ArgumentParser(description='GAN-based unsupervised segmentation test')
-        parser.add_argument('--model_weight', type=str, default=UNET_PATH)
-        parser.add_argument('--n_steps', type=int, default=None)
-        parser.add_argument('--model', type=str, default=None)
-        # parser.add_argument('--image_property_dir', type=str, default=None)
-        # parser.add_argument('--image_root_dir', type=str, default=None)
-        parser.add_argument('--val_property_dir', type=str, default=None)
-        # parser.add_argument('--val_root_dir', type=str, default=None)
-        parser.add_argument('--length', type=int, default=500)
-        parser.add_argument('--phase', type=int, default=None)
-        parser.add_argument('--dataset', type=str, default=None)
-        parser.add_argument('--save_iou', type=bool, default=None)
-
-        parser.add_argument('--z', type=str, default=None)
-        parser.add_argument('--z_noise', type=float, default=0.0)
-        parser.add_argument('--bg_direction', type=str)
-        parser.add_argument('--gan_weights', type=str, default=BIGBIGAN_WEIGHTS)
-
-        #SPA
-        # parser.add_argument('--scg_fosc_th', type=float, default=0.1)
-        # parser.add_argument('--scg_sosc_th', type=float, default=0.5)
-        # parser.add_argument('--scg_order', type=int, default=2)
-        # parser.add_argument('--scg_so_weight', type=float, default=2)
-        # parser.add_argument('--scg_fg_th', type=float, default=0.1)
-        # parser.add_argument('--scg_bg_th', type=float, default=0.05)
-        # parser.add_argument('--scg_blocks', type=str, default='45')
-        # parser.add_argument('--scg', type=bool, default=True)
-        # parser.add_argument("--ram", type=float, default=0.1)
-        # parser.add_argument("--ram_start", type=int, default=0)
-        # parser.add_argument("--ra_loss_weight", type=float, default=0.5)
-        # parser.add_argument("--ram_th_bg", type=float, default=0.1)
-        # parser.add_argument("--ram_bg_fg_gap", type=float, default=0.2)
+        parser = argparse.ArgumentParser(description='Test Parameters')
+        parser.add_argument('--flexible_config_path', type=str, default=None)
+        parser.add_argument('--flexible_config_choice', type=str, default=None)
 
         args = parser.parse_args()       
 
         for key, val in args.__dict__.items():
             if val is not None:
-                ##__dict__中存放self.XXX这样的属性，作为键和值存储
-                #下面代码功能等同于将dict中所有元素作self.key = val的相应操作
-                self.__dict__[key] = val 
-        self._complete_formed_paths('dataset_root','mask_root_dir')
-        # self._complete_paths('dataset_root','image_root_dir')
-        # self._complete_paths('dataset_root','image_property_dir')
-        self._complete_formed_paths('dataset_root','val_root_dir')
-        self._complete_paths('dataset_root','val_property_dir')
+                self.__dict__[key] = val
+        
+        
+        self._read_from_config(self.flexible_config_path, self.flexible_config_choice)
 
-    def _complete_paths(self,rootpath,abspath):
+        ipdb.set_trace()
+        # self._complete_formed_paths(self.dataset_path,'mask_root_dir')
+        # self._complete_formed_paths(self.dataset_path,'val_root_dir')
+        # self._complete_paths(self.dataset_path,'val_property_dir')
+
+    def _read_from_config(self,config_path,config_choice="default"):
+        with open(config_path,'r') as f:
+            cfg=json.load(f)[config_choice]
+        for key,val in cfg.items():
+            if val is not None:
+                self.__dict__[key]=val
+
+
+    def _complete_paths(self,root_path,abspath):
         abss = self.__dict__[abspath]
-        root_path = PATH_FILE[rootpath]
         self.__dict__[abspath] = os.path.join(root_path,abss)
 
-    def _complete_formed_paths(self,rootpath,abspath):
-        root_path = PATH_FILE[rootpath]
+    def _complete_formed_paths(self,root_path,abspath):
         dataset = self.__dict__['dataset']
         if abspath == 'mask_root_dir':
             self.__dict__[abspath] = os.path.join(root_path,dataset,'segmentation')
@@ -145,16 +120,9 @@ def main():
             info_record.mode,info_record.id,info_record.time_sequence)
     print(init_seq)
 
-    #real functioning part
-    # check(param,info_record)
+
     check_unet(param,info_record)
-    # check_compare(param,info_record)
-    # check_compare_vis(param,info_record)
-    # check_syn(param,info_record)
-    # check_unet_mask(param,info_record)
-    # check_visualization(param,info_record)
-    # check_syn_visualization(param,info_record)
-    # check_violin(param,info_record)
+
     info_record.record('test complete as plan!')
 
 

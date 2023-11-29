@@ -1,0 +1,12 @@
+{
+    "default": 
+    {
+        "root_path":"/data/users/quxiangyu/project/beta_CFN",
+        "dataset_path":"/data/users/quxiangyu/datasets"
+    },
+    "serverW":
+    {
+        "root_path":"/data/users/quxiangyu/project/beta_CFN",
+        "dataset_path":"/data/users/quxiangyu/datasets"
+    }
+}

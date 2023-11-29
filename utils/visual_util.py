@@ -9,10 +9,10 @@ import cv2
 import numpy as np
 from torchvision.transforms import ToPILImage
 import ipdb
-from utils.prepared_util import load_path_file
+from utils.io_util import load_path_file
 PATH_FILE = load_path_file()
-PATH = PATH_FILE['main_root']+'/results/pictures'
-Idx_path = PATH_FILE['main_root']+'/results/pictures/0000000_current_id.txt'
+PATH = PATH_FILE['root_path']+'/results/pictures'
+Idx_path = PATH_FILE['root_path']+'/results/pictures/0000000_current_id.txt'
 
 class visualizer(object):
     def __init__(self):

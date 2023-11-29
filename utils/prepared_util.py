@@ -90,13 +90,13 @@ class hdf_maker(object):
 class hdf_reader(object):
     pass
 
-#Find the paths of paths.json, based on the this file's abs root
-PATH_FILE = os.path.abspath(os.path.split(__file__)[0]+'/../../weight/paths.json')
+# #Find the paths of paths.json, based on the this file's abs root
+# PATH_FILE = os.path.abspath(os.path.split(__file__)[0]+'/../../weight/paths.json')
 
-def load_path_file():
-    with open(PATH_FILE,'r') as f:
-        path_file = json.load(f)
-    return path_file
+# def load_path_file():
+#     with open(PATH_FILE,'r') as f:
+#         path_file = json.load(f)
+#     return path_file
 
 
 def list2json(lists,json_file_path):

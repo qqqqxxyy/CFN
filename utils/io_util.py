@@ -13,17 +13,17 @@ import ipdb
 from torchvision.utils import save_image
 # from utils.prepared_util import list2json,load_path_file
 
-
-
-DEFULT_PATH = '/home/qxy/Desktop/BigGan/BigGAN/results/defult'
-#.../BigGAN 根目录
-PATH_FILE1 = os.path.abspath(os.path.split(__file__)[0]+'/../../weight/paths.json')
+'''
+从base.json "default"中读取绝对路径
+包括root_path根目录和dataset_path数据集目录
+'''
+PATH_FILE1 = os.path.abspath(os.path.split(__file__)[0]+'/../config/base.json')
 def load_path_file():
     with open(PATH_FILE1,'r') as f:
-        path_file = json.load(f)
+        path_file = json.load(f)['default']
     return path_file
 PATH_FILE = load_path_file()
-ROOT_PATH = PATH_FILE['main_root']
+ROOT_PATH = PATH_FILE['root_path']
 
 
 
@@ -52,11 +52,6 @@ def _get_sequential_num():
     b = '%02d'%int(lt.tm_mday)#日期
     localtime = '21'+a+b+'_'+'%02d'%lt.tm_hour+'_'+'%02d'%lt.tm_min+'%02d'%lt.tm_sec
     return localtime
-
-def _make_defult_dir():
-    dir_name = os.path.join(DEFULT_PATH,_get_sequential_num())
-    os.makedirs(dir_name,exist_ok=True)
-    return dir_name
 
 def image_normalization(img):
     min_val = np.min(img)
