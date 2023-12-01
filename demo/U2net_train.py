@@ -3,6 +3,7 @@ from __future__ import division
 from copy import deepcopy
 import os
 import sys
+sys.path.append('..')
 import argparse
 import json
 import torch
@@ -39,7 +40,6 @@ SEGMENTATION_RES = 128
 BIGBIGAN_WEIGHTS = '../weight/pretrained_weights/BigBiGAN_x1.pth'
 LATENT_DIRECTION = '../weight/pretrained_weights/bg_direction.pth'
 
-
 MASK_SYNTHEZ_DICT = {
     'lighting': MaskSynthesizing.LIGHTING,
     'mean_thr': MaskSynthesizing.MEAN_THR,
@@ -55,10 +55,10 @@ class TrainParams(object):
         self.rate = 0.001
         self.steps_per_rate_decay = 7000
         self.rate_decay = 0.2
-        self.n_steps = 12000
+        # self.n_steps = 12000
 
         self.latent_shift_r = 5.0
-        self.batch_size = 95
+        # self.batch_size = 95
 
         self.steps_per_log = 100
         self.steps_per_weight_save = 5000
@@ -71,10 +71,6 @@ class TrainParams(object):
         self.maxes_filter = True
         #evaluation 所需direction
         self.model_weight = None
-        # self.mask_root_dir = 'CUB/segmentation'
-        # self.image_root_dir = 'CUB/data'
-        # self.image_property_dir = \
-        # 'CUB/data_annotation/CUB_WSOL/train_list.json'
         self.syn_norm=True
         self.record_file=1
         self.val_property_dir = \
@@ -86,59 +82,55 @@ class TrainParams(object):
         self.dataset = 'CUB'
         self.noise_percent =None
         self.hdf5=False
+        self.gen_devices=0
+        self.seed=6
+        self.gan_weights=""
 
-        #可以从命令行读入的参数
-        parser = argparse.ArgumentParser(description='GAN-based unsupervised segmentation train')
-        parser.add_argument('--args', type=str, default=None, help='json with all arguments')
-        parser.add_argument('--out', type=str)
-        parser.add_argument('--gan_weights', type=str, default=BIGBIGAN_WEIGHTS)
-        parser.add_argument('--bg_direction', type=str)
-        #用于生成训练的显卡编号，本地只有一块卡因而写0
-        parser.add_argument('--gen_devices', type=int, nargs='+', default=[0])
-        parser.add_argument('--seed', type=int, default=2)
-        parser.add_argument('--model', type=str, default=None)
-        parser.add_argument('--z', type=str, default=None)
-        parser.add_argument('--z_noise', type=float, default=0.0)
-        parser.add_argument('--rate', type=float, default=None)
-        parser.add_argument('--batch_size', type=int, default=None)
-        parser.add_argument('--steps_per_validation', type=int, default=None)
-        parser.add_argument('--n_steps', type=int, default=None)
-        parser.add_argument('--steps_per_log', type=int, default=None)
-        parser.add_argument('--model_weight', type=str, default=None)
-        parser.add_argument('--num_gpu', type=int, default=None)
-        parser.add_argument('--steps_per_weight_save', type=int, default=None)
-        parser.add_argument('--syn_norm', type=bool, default=None)
-        parser.add_argument('--record_file', type=int, default=None)
-        parser.add_argument('--val_property_dir', type=str, default=None)
-        parser.add_argument('--n_step_lis', type=int, nargs='+', default=None)
-        parser.add_argument('--decay_lis', type=int, nargs='+', default=None)
-        parser.add_argument('--batch_lis', type=int, nargs='+', default=None)
-        parser.add_argument('--phase_lis', type=int, nargs='+', default=None)
-        parser.add_argument('--marker_lis', type=str, nargs='+', default=None)
-        # parser.add_argument('--image_property_dir', type=str, default=None)
-        # parser.add_argument('--image_root_dir', type=str, default=None)
-        # parser.add_argument('--val_root_dir', type=str, default=None)
-        parser.add_argument('--dataset', type=str, default=None)
-        parser.add_argument('--steps_per_rate_decay', type=int, default=None)
-        parser.add_argument('--noise_percent', type=float, default=None)
-        parser.add_argument('--hdf5', type=bool, default=None)
-
+        self.z=""
+        self.z_noise=0.2
+        self.decay_lis=None
+        self.n_step_lis=None
+        self.batch_lis=None
+        #读入flexible_config的文件中的参数
+        self.flexible_config_path=""
+        self.flexible_config_choice=""
+        parser = argparse.ArgumentParser(description='Test Parameters')
+        parser.add_argument('-cfgp','--flexible_config_path', type=str, default=None)
+        parser.add_argument('-cfgc','--flexible_config_choice', type=str, default=None)
         args = parser.parse_args()
-        self._add_parameter(args.__dict__)
-        self._add_parameter(kwargs)
-
-        self._complete_formed_paths('dataset_path','mask_root_dir')
-        self._complete_formed_paths('dataset_path','image_root_dir')
-        self._complete_formed_paths('dataset_path','val_root_dir')
-        self._complete_formed_paths('dataset_path','image_property_dir')
-
-
-        self._complete_paths('dataset_path','val_property_dir')
-
+        for key,val in args.__dict__.items():
+            if val is not None:
+                self.__dict__[key] = val
+        self._read_from_config(self.flexible_config_path,self.flexible_config_choice)
+        #读入base_config文件中的参数
+        PATH_FILE = load_path_file()
+        self.root_path=PATH_FILE["root_path"]
+        self.dataset_path=PATH_FILE["dataset_path"]
+        #补全model_weight,val_property_dir路径
+        self.model_weight=os.path.join(self.root_path,'weight',self.model_weight)
+        self.val_property_dir=os.path.join(self.dataset_path,self.dataset,'data_annotation',self.val_property_dir)
+        #连接权重路径
+        self.z=os.path.join(self.root_path,'weight',self.z)
+        self.gan_weights=os.path.join(self.root_path,'weight',self.gan_weights)
+        self.bg_direction=os.path.join(self.root_path,'weight',self.bg_direction)
+        #连接数据路径
+        self._complete_formed_paths(self.dataset_path,'mask_root_dir')
+        self._complete_formed_paths(self.dataset_path,'image_root_dir')
+        self._complete_formed_paths(self.dataset_path,'val_root_dir')
+        self._complete_formed_paths(self.dataset_path,'image_property_dir')
+        self._complete_paths(self.dataset_path,'val_property_dir')
+        #
 
         if isinstance(self.synthezing, str):
             self.synthezing = MASK_SYNTHEZ_DICT[self.synthezing]
     
+    def _read_from_config(self,config_path,config_choice="default"):
+        with open(config_path,'r') as f:
+            cfg = json.load(f)[config_choice]
+        for key,val in cfg.items():
+            if val is not None:
+                self.__dict__[key]=val
+
     def _add_parameter(self,dict_p):
         if type(dict_p).__name__ != 'dict':
             raise Exception('added parameter is not \'dict\' type')
@@ -146,13 +138,11 @@ class TrainParams(object):
             if val is not None:
                 self.__dict__[key] = val
 
-    def _complete_paths(self,rootpath,abspath):
+    def _complete_paths(self,root_path,abspath):
         abss = self.__dict__[abspath]
-        root_path = PATH_FILE[rootpath]
         self.__dict__[abspath] = os.path.join(root_path,abss)        
     
-    def _complete_formed_paths(self,rootpath,abspath):
-        root_path = PATH_FILE[rootpath]
+    def _complete_formed_paths(self,root_path,abspath):
         dataset = self.__dict__['dataset']
         if abspath == 'mask_root_dir':
             self.__dict__[abspath] = os.path.join(root_path,dataset,'segmentation')
@@ -171,6 +161,7 @@ def main():
     info_record.record(__file__,'both')
     info_record.record(param.__dict__,'both')
     torch.random.manual_seed(param.seed)
+    # ipdb.set_trace()
     os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(map(str, param.gen_devices))
 
     init_seq = '{0} experment No: {1}  time : {2}'.format(\

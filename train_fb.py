@@ -6,7 +6,7 @@ import json
 import torch
 import numpy as np
 #from tensorboardX import SummaryWriter
-from torch.utils.data import DataLoader, dataloader
+from torch.utils.data import DataLoader, dataloader,OriDataset
 import matplotlib
 matplotlib.use("Agg")
 import ipdb
@@ -16,14 +16,15 @@ from data import SegFileDataset
 from UNet.unet_model import UNet
 from UNet.unet_cam import *
 from gan_mask_gen import MaskGenerator, MaskSynthesizing, it_mask_gen #通过gan网络生成mask
-from data import TrainDataset, FiledDataset,CombData,TestDataset
+from data import TrainDataset, FiledDataset,CombData,ObjLocDataset
+from torchvision import transforms
 from metrics import ILSVRC_metrics, Localization, model_metrics, IoU, accuracy, F_max,ILSVRC_metrics
 from BigGAN.gan_load import make_big_gan
 from utils.postprocessing import connected_components_filter,\
     SegmentationInference, Threshold
 from utils.utils import to_image, acc_counter
 from utils.io_util import Train_Record
-from utils.visual_util import visualize_tensor
+
 import time
 DEFAULT_EVAL_KEY = 'id'
 THR_EVAL_KEY = 'thr'
@@ -36,7 +37,7 @@ MASK_SYNTHEZ_DICT = {
     'lighting': MaskSynthesizing.LIGHTING,
     'mean_thr': MaskSynthesizing.MEAN_THR,
 }
-PATHS_FILE='../weight_result/paths.json'
+PATHS_FILE='../weight/paths.json'
 
 class TrainParams(object):
     '''
@@ -145,13 +146,21 @@ def main():
             info_record.mode,info_record.id,info_record.time_sequence)
     print(init_seq)
 
+    TrainOri = OriDataset(param.image_root_dir,param.image_property_dir,
+                            hdf5=param.hdf5,
+                         tsfm=transforms.Compose([transforms.Resize((156,156)), 
+                                    transforms.RandomCrop(128), 
+                                    # transforms.RandomHorizontalFlip(),
+                                    transforms.ToTensor(),
+                                    Trans(['Normalize','standard']),
+                                     ]))
 
     G = make_big_gan(param.gan_weights).eval().cpu()
     bg_direction = torch.load(param.bg_direction)
     mask_postprocessing = [connected_components_filter]
     params = [G,bg_direction,mask_postprocessing,param]
     devision = 'split'
-    CombLoader = CombData(TrainDataset,MaskGenerator,devision,params)
+    CombLoader = CombData(TrainOri,MaskGenerator,devision,params)
 
     model = eval(param.model)().train().cuda()
     if param.model_weight != None:
@@ -173,7 +182,7 @@ def main():
     param.steps_per_rate_decay = param.decay_lis[0]
     model.phase = 1
     param.batch_size=param.batch_lis[0]
-    CombLoader = CombData(TrainDataset,MaskGenerator,devision,params)
+    CombLoader = CombData(TrainOri,MaskGenerator,devision,params)
     synthetic_score = train_segmentation(
         model, CombLoader, param, info_record, param.out, param.gen_devices)
 
@@ -184,7 +193,7 @@ def main():
     model.phase = 2
     ##为了节省gpu第二阶段batchsize降成50
     param.batch_size=param.batch_lis[1]
-    CombLoader = CombData(TrainDataset,MaskGenerator,devision,params)
+    CombLoader = CombData(TrainOri,MaskGenerator,devision,params)
     synthetic_score = train_segmentation(
         model, CombLoader, param, info_record, param.out, param.gen_devices)
 
@@ -198,7 +207,7 @@ def main():
     param.steps_per_rate_decay = param.decay_lis[2]
     model.phase = 3
     param.batch_size=param.batch_lis[2]
-    CombLoader = CombData(TrainDataset,MaskGenerator,devision,params)
+    CombLoader = CombData(TrainOri,MaskGenerator,devision,params)
     synthetic_score = train_segmentation(
         model, CombLoader, param, info_record, param.out, param.gen_devices)
     print('Synthetic data score: {}'.format(synthetic_score))
@@ -279,7 +288,7 @@ def train_segmentation(model,CombLoader,params,info_record,out_dir,gen_devices):
                 outdict = model_metrics(Threshold(model, thr=0.5, resize_to=128), val_dl, \
                                             stats=(IoU, accuracy,Localization), n_steps = 500)
             elif 'ILSVRC' in params.image_root_dir:
-                val_ds = TestDataset(params.val_root_dir,params.val_property_dir)
+                val_ds = ObjLocDataset(params.val_root_dir,params.val_property_dir)
                 val_dl = torch.utils.data.DataLoader(val_ds,1,shuffle=False)
                 outdict = ILSVRC_metrics(Threshold(model,thr=0.5,resize_to=128),val_dl,n_steps=1000)
                 # outdict = model_metrics(Threshold(model,thr=0.5,resize_to=128),val_dl, \
@@ -296,42 +305,7 @@ def train_segmentation(model,CombLoader,params,info_record,out_dir,gen_devices):
     info_record.record('train complete as plan!')
     return 0
 
-def check():
-    param = TrainParams()
-    print('run train with parameter:')
-    print(param.__dict__)
-    info_record = Train_Record(file=param.record_file)
-    info_record.record(param.__dict__,'log_detail')
-    torch.random.manual_seed(param.seed)
-    torch.cuda.set_device(param.device)
-    
-    G = make_big_gan(param.gan_weights).eval().cpu()
-    bg_direction = torch.load(param.bg_direction)
-    mask_postprocessing = [connected_components_filter]
-    params = [G,bg_direction,mask_postprocessing,param]
-    devision = 'split'
-    CombLoader = CombData(TrainDataset,MaskGenerator,devision,params)
-    image,clas,mask = CombLoader[0]
-    # print(image[0,:].max())
-    # print(image[1,:].max())
-    # print(image[2,:].max())
-    # print(image[3,:].max(),'\n')
 
-    # print(image[0,:].min())
-    # print(image[1,:].min())
-    # print(image[2,:].min())
-    # print(image[3,:].min(),'\n')
-
-    # print(image[0,:].mean())
-    # print(image[1,:].mean())
-    # print(image[2,:].mean())
-    # print(image[3,:].mean())
-    # ipdb.set_trace()
-    vis_image = visualize_tensor(image)
-    vis_mask = visualize_tensor(mask.unsqueeze(1))
-    
-    vis_image.save_img(adaptive=False)
-    vis_mask.save_img(adaptive=False)
 
 
 if __name__ == '__main__':

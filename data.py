@@ -541,6 +541,9 @@ class CombData(object):
             batch_size = int(P.batch_size/2)
         else:
             batch_size = P.batch_size
+        ipdb.set_trace()
+        tmp = TrainDataset()
+        loader = DataLoader(tmp,batch_size=batch_size,shuffle=True,pin_memory=True ,num_workers=6)
         loader = DataLoader(dataL,batch_size=batch_size,shuffle=True,pin_memory=True ,num_workers=6)
         return loader
 

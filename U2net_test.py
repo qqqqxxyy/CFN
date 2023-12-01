@@ -20,7 +20,7 @@ import matplotlib
 matplotlib.use("Agg")
 import ipdb
 import torch.nn.functional as F
-from utils.io_util import Info_Record,formate_output,Pretrained_Read
+from utils.io_util import Info_Record,formate_output,Pretrained_Read,load_path_file
 from utils.postprocessing import *
 from utils.utils import to_image,IoU_manager,area_counter
 from utils.visual_util import visualizer
@@ -36,7 +36,7 @@ from metrics import *
 from BigGAN.gan_load import make_big_gan
 from tqdm import tqdm
 from ptflops import get_model_complexity_info
-from utils.prepared_util import load_path_file
+
 import pandas as pd
 PATH_FILE = load_path_file()
 UNET_PATH = '../weight/pretrained_weight/pre_u2net.pth'
@@ -88,21 +88,6 @@ class TestParams(object):
         parser.add_argument('--z_noise', type=float, default=0.0)
         parser.add_argument('--bg_direction', type=str)
         parser.add_argument('--gan_weights', type=str, default=BIGBIGAN_WEIGHTS)
-
-        #SPA
-        # parser.add_argument('--scg_fosc_th', type=float, default=0.1)
-        # parser.add_argument('--scg_sosc_th', type=float, default=0.5)
-        # parser.add_argument('--scg_order', type=int, default=2)
-        # parser.add_argument('--scg_so_weight', type=float, default=2)
-        # parser.add_argument('--scg_fg_th', type=float, default=0.1)
-        # parser.add_argument('--scg_bg_th', type=float, default=0.05)
-        # parser.add_argument('--scg_blocks', type=str, default='45')
-        # parser.add_argument('--scg', type=bool, default=True)
-        # parser.add_argument("--ram", type=float, default=0.1)
-        # parser.add_argument("--ram_start", type=int, default=0)
-        # parser.add_argument("--ra_loss_weight", type=float, default=0.5)
-        # parser.add_argument("--ram_th_bg", type=float, default=0.1)
-        # parser.add_argument("--ram_bg_fg_gap", type=float, default=0.2)
 
         args = parser.parse_args()       
 

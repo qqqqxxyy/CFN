@@ -25,8 +25,8 @@ from BigGAN.gan_load import make_big_gan
 from utils.postprocessing import connected_components_filter,\
     SegmentationInference, Threshold
 from utils.utils import to_image, acc_counter
-from utils.io_util import PATH_FILE, Train_Record,Pretrained_Read
-from utils.prepared_util import list2json,load_path_file
+from utils.io_util import PATH_FILE, Train_Record,Pretrained_Read,load_path_file
+from utils.prepared_util import list2json
 from U2net_test import check_train,check_train_cls
 from compare_model import my_optim
 PATH_FILE = load_path_file()

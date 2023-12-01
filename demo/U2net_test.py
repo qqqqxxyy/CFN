@@ -45,12 +45,11 @@ class TestParams(object):
     def __init__(self):
         #固定参数
         self.batch_size= 1    
-        self.model = 'UNet_cam'
-        self.dataset = 'CUB'
+        self.model = ""
+        self.dataset = ""
         self.n_steps=None
         self.phase = 1
-        self.val_property_dir = \
-            'CUB/data_annotation/CUB_WSOL/test_list.json'
+        self.val_property_dir = ""
         self.image_root_dir = None
         self.image_property_dir = None
         self.latent_shift_r = 5.0
@@ -62,29 +61,30 @@ class TestParams(object):
         self.save_iou=False
         self.model_weight=""
         self.length=50
-        PATH_FILE = load_path_file()
-        self.root_path=PATH_FILE["root_path"]
-        self.dataset_path=PATH_FILE["dataset_path"]
+        #读入flexible_config的文件中的参数
         self.flexible_config_path=""
         self.flexible_config_choice=""
-        #可以从命令行读入的参数
         parser = argparse.ArgumentParser(description='Test Parameters')
-        parser.add_argument('--flexible_config_path', type=str, default=None)
-        parser.add_argument('--flexible_config_choice', type=str, default=None)
-
+        parser.add_argument('-cfgp','--flexible_config_path', type=str, default=None)
+        parser.add_argument('-cfgc','--flexible_config_choice', type=str, default=None)
         args = parser.parse_args()       
-
         for key, val in args.__dict__.items():
             if val is not None:
                 self.__dict__[key] = val
-        
-        
         self._read_from_config(self.flexible_config_path, self.flexible_config_choice)
+        #读入base_config文件中的参数
+        PATH_FILE = load_path_file()
+        self.root_path=PATH_FILE["root_path"]
+        self.dataset_path=PATH_FILE["dataset_path"]
+        #补全model_weight,val_property_dir路径
+        self.model_weight=os.path.join(self.root_path,'weight',self.model_weight)
+        self.val_property_dir=os.path.join(self.dataset_path,self.dataset,'data_annotation',self.val_property_dir)
+        #连接数据路径
+        self._complete_formed_paths(self.dataset_path,'mask_root_dir')
+        self._complete_formed_paths(self.dataset_path,'val_root_dir')
+        self._complete_paths(self.dataset_path,'val_property_dir')
+        
 
-        ipdb.set_trace()
-        # self._complete_formed_paths(self.dataset_path,'mask_root_dir')
-        # self._complete_formed_paths(self.dataset_path,'val_root_dir')
-        # self._complete_paths(self.dataset_path,'val_property_dir')
 
     def _read_from_config(self,config_path,config_choice="default"):
         with open(config_path,'r') as f:
