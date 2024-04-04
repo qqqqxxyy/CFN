@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "beta",
+			"path": "../../beta"
+		},
+		{
+			"name": "research",
+			"path": "../.."
+		}
+	],
+	"settings": {}
+}

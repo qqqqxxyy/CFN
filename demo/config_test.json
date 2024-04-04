@@ -1,10 +1,7 @@
 {
     "default": {
-        "model":"UNet_ssol_base2_3",
-        "model_weight":"result_weight/000004_2000_result.pth",
-        "dataset":"ILSVRC",
-        "phase":2,
-        "val_property_dir":"test_list.json"
+        "data":"VOC12",
+        "set":"train"
     },
 
     "CUB":{
@@ -14,8 +11,12 @@
         "phase":2,
         "val_property_dir":"test_list.json"
     },
+    "VOC12":{
+        "data":"VOC12",
+        "set":"train"
+    },
     "注释":{
-        "work to be down":
-        "增加并行gpu数和gpu位置"
+        "json logic":
+        "nothing"
     }
 }

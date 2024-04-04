@@ -11,6 +11,7 @@ from utils.utils import make_noise, run_in_background
 from utils.prefetch_generator import background
 from torchvision import transforms
 
+
 class MaskSynthesizing(Enum):
     LIGHTING = 0
     MEAN_THR = 1
